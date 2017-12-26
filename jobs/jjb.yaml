@@ -1,0 +1,55 @@
+---
+- job-template:
+    name: "{stream}-build-image"
+    description: "Build docker image for integration tests"
+    project-type: freestyle
+    parameters:
+      - string:
+          name: "WHARF_IP"
+      - string:
+          name: "WHARF_PORT"
+      - string:
+          name: "CONF_PATH"
+          default: "/integration_tests/conf"
+    builders:
+      - shell: "rm -rf JenkinsPOC;
+      git clone https://github.com/shalomnaim1/JenkinsPOC;
+      docker build -t integration_tests_{stream}:latest -f JenkinsPOC/create-testing-env.dockerfile JenkinsPOC"
+
+- job-template:
+    name: "{stream}-{ocp_version}-run-tests"
+    description: "Running integration tests on CFME {stream} with openshift v{ocp_version}"
+    project-type: freestyle
+    parameters:
+      - string:
+          name: "WHARF_IP"
+      - string:
+          name: "WHARF_PORT"
+      - string:
+          name: "CONF_PATH"
+          default: "/integration_tests/conf"
+    builders:
+      - shell: "rm -rf JenkinsPOC;
+      git clone https://github.com/shalomnaim1/JenkinsPOC;
+      python JenkinsPOC/jobs/scripts/run_tests.py"
+
+- project:
+    name: "build-image"
+    project-name: "JenkinsPOC"
+    jobs:
+      - "{stream}-build-image":
+          stream:
+            - "downstream-58z"
+            - "downstream-59z"
+
+- project:
+    name: "run-tests"
+    project-name: "JenkinsPOC"
+    jobs:
+      - "{stream}-{ocp_version}-run-tests":
+          stream:
+            - "downstream-58z"
+            - "downstream-59z"
+          ocp_version:
+            - "3.6"
+            - "3.7"
